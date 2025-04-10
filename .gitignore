@@ -1,0 +1,9 @@
+# Ignore Mac system files
+eye-gaze/
+
+
+.history/
+
+__pycache__/
+*.pyc
+*.pyo

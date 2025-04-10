@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Quiz Assessment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .quiz-container {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .options button {
+            display: block;
+            margin: 0.5rem 0;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            cursor: pointer;
+        }
+
+        .options button:hover {
+            background-color: #d0d0d0;
+        }
+
+        .result {
+            font-weight: bold;
+            font-size: 1.3rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .timer {
+            text-align: right;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="quiz-container">
+        <div class="timer" id="timer">Time Left: 60s</div>
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+        <div class="result" id="result"></div>
+    </div>
+    <div>
+        <p id="direction">Gaze Direction: </p>
+        <img id="video-frame" alt="Video Frame" style="max-width: 100%; border: 1px solid black;">
+    </div>
+
+
+    <script>
+        // Create a WebSocket connection to the server
+        const socket = new WebSocket("ws://localhost:8000/ws");
+
+        // When the connection is opened
+        socket.onopen = () => {
+            console.log("WebSocket connection established.");
+        };
+
+        // When a message is received from the server
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data); // Parse the JSON data
+            if (data.error) {
+                console.error("Error:", data.error);
+                return;
+            }
+
+            // Update the gaze direction
+            const directionElement = document.getElementById("direction");
+            directionElement.textContent = `Gaze Direction: ${data.direction}`;
+
+            // If the server sends an image (base64-encoded), display it
+            if (data.image) {
+                const imgElement = document.getElementById("video-frame");
+                imgElement.src = `data:image/jpeg;base64,${data.image}`;
+            }
+        };
+
+        // When the connection is closed
+        socket.onclose = () => {
+            console.log("WebSocket connection closed.");
+        };
+
+        // When an error occurs
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+    </script>
+    <script>
+        const questions = [
+            {
+                question: "What is the capital of France?",
+                options: ["London", "Berlin", "Paris", "Madrid"],
+                answer: "Paris"
+            },
+            {
+                question: "Who developed the theory of relativity?",
+                options: ["Isaac Newton", "Albert Einstein", "Galileo Galilei", "Nikola Tesla"],
+                answer: "Albert Einstein"
+            },
+            {
+                question: "What does HTML stand for?",
+                options: ["Hyper Text Markup Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language", "Hyper Tool Machine Language"],
+                answer: "Hyper Text Markup Language"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let timeLeft = 60;
+
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const resultEl = document.getElementById('result');
+        const timerEl = document.getElementById('timer');
+
+        function showQuestion() {
+            const q = questions[currentQuestion];
+            questionEl.textContent = q.question;
+            optionsEl.innerHTML = '';
+            q.options.forEach(opt => {
+                const button = document.createElement('button');
+                button.textContent = opt;
+                button.onclick = () => checkAnswer(opt);
+                optionsEl.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selected) {
+            if (selected === questions[currentQuestion].answer) {
+                score++;
+            }
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                showQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function endQuiz() {
+            questionEl.textContent = '';
+            optionsEl.innerHTML = '';
+            resultEl.textContent = `You scored ${score} out of ${questions.length}`;
+            clearInterval(timerInterval);
+        }
+
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.textContent = `Time Left: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                endQuiz();
+            }
+        }, 1000);
+
+        showQuestion();
+    </script>
+</body>
+
+</html>
