@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .result-container {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .score {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="result-container">
+        <h1>Quiz Completed!</h1>
+        <div class="score" id="score"></div>
+        <button onclick="window.location.href='/home'"
+            style="margin-top:20px; padding:10px 20px; font-size:16px; background-color:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;">
+            Take Quiz Again
+        </button>
+    </div>
+    <script>
+        // Retrieve score from localStorage or query params (choose your preferred method)
+        // Example using localStorage:
+        const score = localStorage.getItem('quizScore');
+        const total = localStorage.getItem('quizTotal');
+        if (score && total) {
+            document.getElementById('score').textContent = `You scored ${score} out of ${total}`;
+        } else {
+            document.getElementById('score').textContent = "No result available.";
+        }
+    </script>
+</body>
+
+</html>

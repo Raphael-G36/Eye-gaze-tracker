@@ -1,4 +1,6 @@
 from fastapi import FastAPI, WebSocket
+from pathlib import Path
+from fastapi.responses import HTMLResponse
 from view import EyeTracker
 import cv2
 
@@ -6,24 +8,20 @@ import cv2
 app = FastAPI()
 eye_tracker = EyeTracker()
 
-
 @app.get("/")
-def read_root():
-    return {"message": "welcome to fast api"}
+async def read_root():
+    return{"message":"Server is up and running"}
 
-@app.post("/process_frame")
-def process_frame():
-    cap = cv2.VideoCapture(0)
-    ret, frame = cap.read()
-    if not ret:
-        return {"error": "unable to access camera"}
-    result = eye_tracker.process_frame(frame)
-    cap.release()
-    return {"message": "frame processed"}, cv2.putText(frame, result["direction"], (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+@app.get("/home")
+async def home():
+    html_file = Path("templates/index.html")
+    context = html_file.read_text(encoding="utf-8")
+    return HTMLResponse(content=context, status_code=200)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    global cap
     cap = cv2.VideoCapture(0)
     while cap.isOpened():
         ret, frame = cap.read()
@@ -32,8 +30,15 @@ async def websocket_endpoint(websocket: WebSocket):
             break
         result = eye_tracker.process_frame(frame)
         await websocket.send_json(result)
-        key = cv2.waitKey(1)
-        if key == ord('q'):
-            break
     cap.release()
-    await websocket.close()
+
+@app.get("/result")
+def results(): 
+    cap.release()
+    page = Path("templates/result.html")
+    context = page.read_text(encoding="utf-8")
+    return HTMLResponse(content=context, status_code=200)
+
+           
+    
+    

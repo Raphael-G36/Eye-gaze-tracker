@@ -60,55 +60,51 @@
 </head>
 
 <body>
-    <div class="quiz-container">
+
+    <div style="text-align: center; margin-top: 20px;" id="start-connection">
+        <button onclick="start()" id="start-connection"
+            style="padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Start Connection
+        </button>
+    </div>
+
+    <div class="quiz-container" style="display: none;" id="quiz-container">
         <div class="timer" id="timer">Time Left: 60s</div>
         <div class="question" id="question"></div>
         <div class="options" id="options"></div>
         <div class="result" id="result"></div>
+        <div style="text-align: center; margin-top: 20px;" id="end-connection">
+            <button onclick="end(event)"
+                style="padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                End Connection
+            </button>
+        </div>
     </div>
     <div>
-        <p id="direction">Gaze Direction: </p>
-        <img id="video-frame" alt="Video Frame" style="max-width: 100%; border: 1px solid black;">
+        <p id="direction" style="display: none;">Gaze Direction: </p>
     </div>
 
 
     <script>
-        // Create a WebSocket connection to the server
-        const socket = new WebSocket("ws://localhost:8000/ws");
+        function start() {
 
-        // When the connection is opened
-        socket.onopen = () => {
-            console.log("WebSocket connection established.");
-        };
+            document.getElementById("start-connection").style.display = "none";
+            document.getElementById("quiz-container").style.display = "block";
+            document.getElementById("direction").style.display = "block";
 
-        // When a message is received from the server
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data); // Parse the JSON data
-            if (data.error) {
-                console.error("Error:", data.error);
-                return;
+            globalThis.ws = new WebSocket("ws://localhost:8000/ws");
+
+            ws.onmessage = function (event) {
+                var data = JSON.parse(event.data);
+                direction = document.getElementById("direction");
+                direction.innerHTML = "Gaze Direction: " + data.direction;
             }
+        }
 
-            // Update the gaze direction
-            const directionElement = document.getElementById("direction");
-            directionElement.textContent = `Gaze Direction: ${data.direction}`;
-
-            // If the server sends an image (base64-encoded), display it
-            if (data.image) {
-                const imgElement = document.getElementById("video-frame");
-                imgElement.src = `data:image/jpeg;base64,${data.image}`;
-            }
-        };
-
-        // When the connection is closed
-        socket.onclose = () => {
-            console.log("WebSocket connection closed.");
-        };
-
-        // When an error occurs
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
-        };
+        function end(event) {
+            window.location.href = "/result";
+            ws.close();
+        }
     </script>
     <script>
         const questions = [

@@ -42,9 +42,9 @@ class EyeTracker:
     def locate_gaze_direction(self, left_eye_x, right_eye_x, frame_width):
         # the average of the two eyes will be taken to determine the gaze direction
         eye_avg_x = (left_eye_x + right_eye_x) / 2
-        if eye_avg_x < frame_width * 0.4:
+        if eye_avg_x < frame_width * 0.3:
             return "Looking Left"
-        elif eye_avg_x > frame_width * 0.6:
+        elif eye_avg_x > frame_width * 0.7:
             return "Looking Right"
         else:
             return "Looking Center"
@@ -55,6 +55,8 @@ class EyeTracker:
 #         break
     def process_frame(self, frame):
         image_height, image_width, _ = frame.shape
+        # print(f"Frame Width: {image_width}, Frame Height: {image_height}")
+        
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # process the frame using face mesh to get all 478 landmarks
         results = self.face_mesh.process(frame_rgb)
@@ -64,17 +66,8 @@ class EyeTracker:
                 # Get iris centers (pupils)
                 left_eye_x, left_eye_y = self.locate_pupil(landmarks, self.left_iris, image_width, image_height)
                 right_eye_x, right_eye_y = self.locate_pupil(landmarks, self.right_iris, image_width, image_height)
-                
+                               
                 if left_eye_x and right_eye_x:
                     direction = self.locate_gaze_direction(left_eye_x, right_eye_x, image_width)
-        return {"direction": direction} 
-
-            
-    
-    
-#     cv2.imshow("Eye Tracker", frame)
-#     if cv2.waitKey(1) & 0xFF == ord('q'):
-#         break
-
-# cap.release()
-# cv2.destroyAllWindows()
+                    return {"direction": direction}
+        return {"direction": "No face detected"}
