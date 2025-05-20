@@ -7,9 +7,6 @@ import uuid
 import datetime
 import json
 
-
-
-
 app = FastAPI()
 eye_tracker = EyeTracker()
 
@@ -87,11 +84,3 @@ def results():
     page = Path("templates/result.html")
     context = page.read_text(encoding="utf-8")
     return HTMLResponse(content=context, status_code=200)
-    
-
-
-
-
-        
-    
-    
