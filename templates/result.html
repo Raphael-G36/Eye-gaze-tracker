@@ -4,50 +4,84 @@
 <head>
     <meta charset="UTF-8">
     <title>Quiz Result</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
+            font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+            min-height: 100vh;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
         }
 
         .result-container {
             background: #fff;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem 2rem;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(44, 62, 80, 0.13);
             text-align: center;
+            color: #222b45;
+            max-width: 400px;
+            width: 100%;
         }
 
         .score {
-            font-size: 2rem;
+            font-size: 2.1rem;
             font-weight: bold;
-            color: #4CAF50;
+            color: #4f8cff;
+            margin-bottom: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .message {
+            font-size: 1.15rem;
+            color: #222b45;
+            margin-bottom: 2rem;
+        }
+
+        .home-btn {
+            padding: 13px 32px;
+            font-size: 1.08rem;
+            background-color: #4f8cff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s;
+            box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+        }
+
+        .home-btn:hover {
+            background-color: #1a5fff;
+            color: #fff;
         }
     </style>
 </head>
 
 <body>
     <div class="result-container">
-        <h1>Quiz Completed!</h1>
         <div class="score" id="score"></div>
-        <button onclick="window.location.href='/home'"
-            style="margin-top:20px; padding:10px 20px; font-size:16px; background-color:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;">
-            Take Quiz Again
-        </button>
+        <div class="message" id="message"></div>
+        <button class="home-btn" onclick="window.location.href='/'">Take Quiz Again</button>
     </div>
     <script>
-        // Retrieve score from localStorage or query params (choose your preferred method)
-        // Example using localStorage:
+        // Read score from localStorage and display
         const score = localStorage.getItem('quizScore');
         const total = localStorage.getItem('quizTotal');
-        if (score && total) {
+        if (score !== null && total !== null) {
             document.getElementById('score').textContent = `You scored ${score} out of ${total}`;
+            let percent = Math.round((parseInt(score) / parseInt(total)) * 100);
+            let msg = "Great job!";
+            if (percent < 50) msg = "Keep practicing!";
+            else if (percent < 80) msg = "Good effort!";
+            document.getElementById('message').textContent = msg;
         } else {
             document.getElementById('score').textContent = "No result available.";
+            document.getElementById('message').textContent = "";
         }
     </script>
 </body>

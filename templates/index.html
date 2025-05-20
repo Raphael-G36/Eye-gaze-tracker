@@ -7,87 +7,168 @@
     <title>Online Quiz Assessment</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
+            font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #abb0b6 0%, #e0e7ef 100%);
+            min-height: 100vh;
+            margin: 0;
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
+            align-items: flex-start;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        .gaze-section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(44, 62, 80, 0.07);
+            padding: 18px 0;
+            margin-bottom: 28px;
+            text-align: center;
+            border-left: 6px solid #4f8cff;
+        }
+
+        #direction {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #4f8cff;
+            font-weight: 600;
+            letter-spacing: 1px;
+            display: block;
         }
 
         .quiz-container {
             background: #fff;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem 2rem 2rem 2rem;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(44, 62, 80, 0.13);
             width: 100%;
             max-width: 600px;
+            margin: 0 auto;
+            transition: box-shadow 0.2s;
+        }
+
+        .quiz-container:hover {
+            box-shadow: 0 8px 32px rgba(44, 62, 80, 0.18);
         }
 
         .question {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
+            font-size: 1.35rem;
+            margin-bottom: 1.5rem;
+            color: #222b45;
+            font-weight: 600;
+        }
+
+        .options {
+            margin-bottom: 1.5rem;
         }
 
         .options button {
             display: block;
             margin: 0.5rem 0;
             width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background-color: #e0e0e0;
+            padding: 14px;
+            border: 2px solid #e0e7ef;
+            border-radius: 8px;
+            background-color: #f4f7fa;
+            color: #222b45;
+            font-size: 1.08rem;
             cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s, border 0.2s;
+            box-shadow: 0 1px 4px rgba(44, 62, 80, 0.03);
         }
 
-        .options button:hover {
-            background-color: #d0d0d0;
+        .options button:hover:not(:disabled) {
+            background-color: #4f8cff;
+            color: #fff;
+            border-color: #4f8cff;
+        }
+
+        .options button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
 
         .result {
             font-weight: bold;
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.2rem;
+            color: #4f8cff;
         }
 
         .timer {
             text-align: right;
-            font-weight: bold;
-            margin-bottom: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            color: #ff6b6b;
+            font-size: 1.1rem;
+        }
+
+        .start-btn,
+        .end-btn {
+            padding: 13px 32px;
+            font-size: 1.08rem;
+            background-color: #4f8cff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s;
+            box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+        }
+
+        .start-btn:hover,
+        .end-btn:hover {
+            background-color: #1a5fff;
+            color: #fff;
+        }
+
+        @media (max-width: 700px) {
+
+            .main-wrapper,
+            .quiz-container {
+                max-width: 98vw;
+                padding: 1.2rem 0.5rem;
+            }
         }
     </style>
 </head>
 
 <body>
+    <div class="main-wrapper">
+        <div class="gaze-section">
+            <span id="direction">Gaze Direction: </span>
+        </div>
 
-    <div style="text-align: center; margin-top: 20px;" id="start-connection">
-        <button onclick="start()" id="start-connection"
-            style="padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Start Connection
-        </button>
-    </div>
-
-    <div class="quiz-container" style="display: none;" id="quiz-container">
-        <div class="timer" id="timer">Time Left: 60s</div>
-        <div class="question" id="question"></div>
-        <div class="options" id="options"></div>
-        <div class="result" id="result"></div>
-        <div style="text-align: center; margin-top: 20px;" id="end-connection">
-            <button onclick="end(event)"
-                style="padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                End Connection
+        <div style="text-align: center; margin-bottom: 24px;" id="start-connection">
+            <button onclick="start()" class="start-btn" id="start-connection-btn">
+                Start Quiz
             </button>
         </div>
-    </div>
-    <div>
-        <p id="direction" style="display: none;">Gaze Direction: </p>
-    </div>
 
+        <div class="quiz-container" style="display: none;" id="quiz-container">
+            <div class="timer" id="timer" style="display: block;">Time Left: 120s</div>
+            <div class="question" id="question"></div>
+            <div class="options" id="options"></div>
+            <div class="result" id="result"></div>
+            <div style="text-align: center; margin-top: 20px;" id="end-connection">
+                <button onclick="end(event)" class="end-btn">
+                    End Quiz
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         function start() {
-
             document.getElementById("start-connection").style.display = "none";
             document.getElementById("quiz-container").style.display = "block";
             document.getElementById("direction").style.display = "block";
@@ -102,8 +183,8 @@
         }
 
         function end(event) {
+            if (typeof ws !== "undefined") ws.close();
             window.location.href = "/result";
-            ws.close();
         }
     </script>
     <script>
@@ -120,14 +201,54 @@
             },
             {
                 question: "What does HTML stand for?",
-                options: ["Hyper Text Markup Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language", "Hyper Tool Machine Language"],
+                options: [
+                    "Hyper Text Markup Language",
+                    "Home Tool Markup Language",
+                    "Hyperlinks and Text Markup Language",
+                    "Hyper Tool Machine Language"
+                ],
                 answer: "Hyper Text Markup Language"
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Earth", "Mars", "Jupiter", "Venus"],
+                answer: "Mars"
+            },
+            {
+                question: "What is the largest ocean on Earth?",
+                options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+                answer: "Pacific Ocean"
+            },
+            {
+                question: "Who wrote 'Romeo and Juliet'?",
+                options: ["William Shakespeare", "Charles Dickens", "Jane Austen", "Mark Twain"],
+                answer: "William Shakespeare"
+            },
+            {
+                question: "What is the boiling point of water?",
+                options: ["90°C", "100°C", "80°C", "120°C"],
+                answer: "100°C"
+            },
+            {
+                question: "Which element has the chemical symbol 'O'?",
+                options: ["Gold", "Oxygen", "Osmium", "Oxide"],
+                answer: "Oxygen"
+            },
+            {
+                question: "What is the square root of 64?",
+                options: ["6", "7", "8", "9"],
+                answer: "8"
+            },
+            {
+                question: "Which continent is the Sahara Desert located on?",
+                options: ["Asia", "Africa", "Australia", "Europe"],
+                answer: "Africa"
             }
         ];
 
         let currentQuestion = 0;
         let score = 0;
-        let timeLeft = 60;
+        let timeLeft = 120;
 
         const questionEl = document.getElementById('question');
         const optionsEl = document.getElementById('options');
@@ -136,40 +257,67 @@
 
         function showQuestion() {
             const q = questions[currentQuestion];
-            questionEl.textContent = q.question;
+            questionEl.textContent = `Q${currentQuestion + 1}: ${q.question}`;
             optionsEl.innerHTML = '';
             q.options.forEach(opt => {
                 const button = document.createElement('button');
                 button.textContent = opt;
-                button.onclick = () => checkAnswer(opt);
+                button.onclick = () => checkAnswer(opt, button);
                 optionsEl.appendChild(button);
             });
         }
 
-        function checkAnswer(selected) {
+        function checkAnswer(selected, btn) {
+            // Disable all buttons after answer
+            Array.from(optionsEl.children).forEach(b => b.disabled = true);
+
             if (selected === questions[currentQuestion].answer) {
                 score++;
-            }
-            currentQuestion++;
-            if (currentQuestion < questions.length) {
-                showQuestion();
+                btn.style.backgroundColor = "#4f8cff";
+                btn.style.color = "#fff";
+                btn.style.borderColor = "#4f8cff";
             } else {
-                endQuiz();
+                btn.style.backgroundColor = "#ff6b6b";
+                btn.style.color = "#fff";
+                btn.style.borderColor = "#ff6b6b";
+                // Highlight correct answer
+                Array.from(optionsEl.children).forEach(b => {
+                    if (b.textContent === questions[currentQuestion].answer) {
+                        b.style.backgroundColor = "#4f8cff";
+                        b.style.color = "#fff";
+                        b.style.borderColor = "#4f8cff";
+                    }
+                });
             }
+            setTimeout(() => {
+                currentQuestion++;
+                if (currentQuestion < questions.length) {
+                    showQuestion();
+                } else {
+                    endQuiz();
+                }
+            }, 900);
         }
 
         function endQuiz() {
-            questionEl.textContent = '';
-            optionsEl.innerHTML = '';
-            resultEl.textContent = `You scored ${score} out of ${questions.length}`;
-            clearInterval(timerInterval);
+            // Save score to localStorage for result page
+            var timer = getElementById("timer");
+            timer.style.display = "none";
+
+            localStorage.setItem('quizScore', score);
+            localStorage.setItem('quizTotal', questions.length);
+            setTimeout(() => {
+                window.location.href = "/result";
+            }, 1800);
         }
 
         const timerInterval = setInterval(() => {
-            timeLeft--;
-            timerEl.textContent = `Time Left: ${timeLeft}s`;
-            if (timeLeft <= 0) {
-                endQuiz();
+            if (timeLeft > 0) {
+                timeLeft--;
+                timerEl.textContent = `Time Left: ${timeLeft}s`;
+                if (timeLeft === 0) {
+                    endQuiz();
+                }
             }
         }, 1000);
 

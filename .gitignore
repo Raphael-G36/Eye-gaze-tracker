@@ -7,3 +7,5 @@ eye-gaze/
 __pycache__/
 *.pyc
 *.pyo
+
+*.json
