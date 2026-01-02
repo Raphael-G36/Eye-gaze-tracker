@@ -4,9 +4,6 @@ venv/
 env/
 .venv/
 
-suspicious_behaviour/session_log/
-suspicious_behaviour/image/
-
 .history/
 .vscode/
 .idea/
