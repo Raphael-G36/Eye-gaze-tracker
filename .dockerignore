@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+.venv/
+eye-gaze/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Session data
+suspicious_behaviour/session_log/*.json
+suspicious_behaviour/image/*.jpg
+suspicious_behaviour/image/*.png
+
+# Git
+.git/
+.gitignore
+
+# Documentation (optional - keep if you want)
+# *.md
+
+# Test files
+test_*.py
+*_test.py
+
+# Frontend (not needed for backend)
+frontend/
+
