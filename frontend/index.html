@@ -316,16 +316,36 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
-        // Get backend URL from environment or use default
-        const BACKEND_URL = window.location.origin.includes('localhost') 
-            ? 'ws://localhost:8000' 
-            : 'wss://' + window.location.hostname.replace('your-frontend', 'your-backend') + '/ws';
+        // Get backend URL from environment variable or config
+        // Set this in Vercel environment variables as VITE_BACKEND_URL
+        // Or update config.js with your Railway backend URL
+        const getBackendUrl = () => {
+            // Check for environment variable (Vercel - set as VITE_BACKEND_URL)
+            // Note: Vite env vars are available at build time, not runtime
+            // So we use config.js for runtime configuration
+            
+            // Check for config file (loaded via script tag above)
+            if (typeof window !== 'undefined' && window.__BACKEND_URL__) {
+                return window.__BACKEND_URL__;
+            }
+            
+            // Check for BACKEND_CONFIG global (from config.js)
+            if (typeof BACKEND_CONFIG !== 'undefined' && BACKEND_CONFIG.url) {
+                return BACKEND_CONFIG.url;
+            }
+            
+            // Default based on hostname
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'ws://localhost:8000';
+            }
+            
+            // Fallback - replace with your Railway backend URL
+            return 'wss://your-railway-app.railway.app';
+        };
         
-        // For production, you'll need to set this to your Railway backend URL
-        const WS_URL = window.location.origin.includes('localhost') 
-            ? 'ws://localhost:8000/ws'
-            : 'wss://your-railway-app.railway.app/ws';
+        const WS_URL = `${getBackendUrl()}/ws`;
 
         let currentQuestion = 0;
         let score = 0;
@@ -393,7 +413,7 @@
                 ws.close();
             }
             setTimeout(() => {
-                window.location.href = "/result";
+                window.location.href = "/result.html";
             }, 1000);
         }
 
@@ -549,3 +569,4 @@
 </body>
 
 </html>
+

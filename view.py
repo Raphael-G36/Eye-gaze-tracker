@@ -59,14 +59,13 @@ class EyeTracker:
                 self.away_start_time = now
             elif now - self.away_start_time >= 3:
                 self.away_flagged = True
-                return "Flagged: Looking away for 3+ seconds"
         else:
             self.away_start_time = None
 
         # Normal gaze direction logic
-        if eye_avg_x < frame_width * 0.45:
+        if eye_avg_x < frame_width * 0.49:
             return "looking right"
-        elif eye_avg_x > frame_width * 0.65:
+        elif eye_avg_x > frame_width * 0.59:
             return "Looking left"
         else:
             return "Looking Center"
@@ -93,7 +92,8 @@ class EyeTracker:
                     self.no_face_start_time = now
                 elif now - self.no_face_start_time >= 3:
                     self.no_face_flagged = True
-                    return {"direction": "Flagged: Looking away for 3+ seconds"}
+                return {"direction": "No face detected"}
+                
             return {"direction": "No face detected"}
         else:
             # No face detected
@@ -102,7 +102,6 @@ class EyeTracker:
                     self.no_face_start_time = now
                 elif now - self.no_face_start_time >= 3:
                     self.no_face_flagged = True
-                    return {"direction": "Flagged: Looking away for 3+ seconds"}
                 return {"direction": "No face detected"}
-            else:
-                return {"direction": "Flagged: Looking away for 3+ seconds"}
+                    
+            return {"direction": "No face detected"}

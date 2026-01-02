@@ -1,11 +1,45 @@
 # Ignore Mac system files
 eye-gaze/
+venv/
+env/
+.venv/
 
+suspicious_behaviour/session_log/
+suspicious_behaviour/image/
 
 .history/
+.vscode/
+.idea/
 
 __pycache__/
 *.pyc
 *.pyo
+*.py[cod]
+*$py.class
 
-*.json
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Build files
+dist/
+build/
+*.egg-info/
+
+# Session logs (keep structure, ignore content)
+suspicious_behaviour/session_log/*.json
+suspicious_behaviour/image/*.jpg
+suspicious_behaviour/image/*.png
