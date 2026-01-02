@@ -14,17 +14,16 @@ An intelligent online assessment platform that monitors eye gaze using MediaPipe
 ## 🏗️ Architecture
 
 - **Backend**: FastAPI (Python) - Handles WebSocket connections and eye tracking processing
-- **Frontend**: Vanilla HTML/CSS/JavaScript - Deployed separately on Vercel
+- **Frontend**: Vanilla HTML/CSS/JavaScript - Served by FastAPI backend
 - **Eye Tracking**: MediaPipe Face Mesh for real-time gaze detection
-- **Deployment**: 
-  - Frontend: Vercel
-  - Backend: Railway
+- **Camera Capture**: Browser-based (MediaDevices API) - Frames sent to backend via WebSocket
+- **Deployment**: Railway (single deployment, no separate frontend needed)
 
 ## 📋 Prerequisites
 
 - Python 3.12+
-- Webcam/Camera access
-- Node.js (for local frontend testing, optional)
+- Webcam/Camera access (for users taking the quiz)
+- Modern web browser with camera support
 
 ## 🚀 Local Development Setup
 
@@ -57,35 +56,25 @@ An intelligent online assessment platform that monitors eye gaze using MediaPipe
 
    The backend will be available at `http://localhost:8000`
 
-### Frontend Setup (Local Testing)
+### Access the Application
 
-1. **Navigate to frontend directory**
-   ```bash
-   cd frontend
-   ```
-
-2. **Update the backend URL in `config.js`**
-   ```javascript
-   const BACKEND_CONFIG = {
-       url: 'ws://localhost:8000' // For local development
-   };
-   ```
-
-3. **Serve the frontend** (using any static file server)
-   ```bash
-   # Using Python
-   python -m http.server 3000
+1. **Open in browser**
+   Navigate to `http://localhost:8000`
    
-   # Or using Node.js http-server
-   npx http-server -p 3000
-   ```
+2. **Landing Page**
+   - You'll see the landing page at the root URL
+   - Click "Show Demo" to access the quiz
 
-4. **Open in browser**
-   Navigate to `http://localhost:3000`
+3. **Start Quiz**
+   - Click "Start Quiz" button
+   - Grant camera permissions when prompted
+   - The browser will capture video from your camera
 
 ## 🌐 Deployment Guide
 
-### Backend Deployment on Railway
+### Deploy to Railway (Single Deployment)
+
+The application is now fully deployable on Railway with frontend camera capture. No separate frontend deployment needed!
 
 1. **Create a Railway account**
    - Go to [railway.app](https://railway.app)
@@ -100,70 +89,46 @@ An intelligent online assessment platform that monitors eye gaze using MediaPipe
    - Railway will automatically detect the Python project
    - The `Procfile` and `railway.json` will configure the deployment
 
-4. **Set environment variables** (if needed)
-   - Go to your project settings
-   - Add any required environment variables
-
-5. **Deploy**
+4. **Deploy**
    - Railway will automatically build and deploy
    - Note your deployment URL (e.g., `your-app.railway.app`)
 
-6. **Update CORS settings**
-   - In `main.py`, update the `allow_origins` in CORS middleware with your Vercel domain:
+5. **Access your application**
+   - Visit `https://your-app.railway.app`
+   - The landing page will be at the root URL
+   - Click "Show Demo" to access the quiz
+
+### How It Works on Railway
+
+✅ **Works perfectly on Railway!** The camera is accessed from the user's browser, not the server:
+- Browser captures video using MediaDevices API
+- Frames are sent to Railway backend via WebSocket
+- Backend processes frames with MediaPipe
+- Results sent back to browser
+- No server camera needed!
+
+### CORS Configuration
+
+The app is configured to accept connections from any origin. If you need to restrict access:
+
+1. Edit `main.py`
+2. Update the `allow_origins` in CORS middleware:
    ```python
-   allow_origins=["https://your-vercel-app.vercel.app"]
+   allow_origins=["https://your-domain.com"]
    ```
-
-### Frontend Deployment on Vercel
-
-1. **Create a Vercel account**
-   - Go to [vercel.com](https://vercel.com)
-   - Sign up or log in
-
-2. **Install Vercel CLI** (optional, can use web interface)
-   ```bash
-   npm i -g vercel
-   ```
-
-3. **Deploy from frontend directory**
-   ```bash
-   cd frontend
-   vercel
-   ```
-   Or use the Vercel web interface:
-   - Click "New Project"
-   - Import your repository
-   - Set root directory to `frontend`
-   - Deploy
-
-4. **Configure environment variables**
-   - In Vercel dashboard, go to your project settings
-   - Add environment variable:
-     - Key: `VITE_BACKEND_URL`
-     - Value: `wss://your-railway-app.railway.app` (your Railway backend URL)
-
-5. **Update config.js**
-   - Edit `frontend/config.js` with your Railway backend URL:
-   ```javascript
-   const BACKEND_CONFIG = {
-       url: 'wss://your-railway-app.railway.app'
-   };
-   ```
-
-6. **Redeploy** (if needed)
-   - Vercel will automatically redeploy on git push
-   - Or manually trigger a redeploy from the dashboard
+3. Commit and push (Railway auto-deploys)
 
 ## 📖 How to Use
 
 ### For Testers/Users
 
 1. **Access the Application**
-   - Open the deployed frontend URL (Vercel)
-   - Or open `http://localhost:3000` for local testing
+   - Open the deployed Railway URL (e.g., `https://your-app.railway.app`)
+   - Or open `http://localhost:8000` for local testing
 
 2. **Grant Camera Permissions**
    - When prompted, allow camera access
+   - The browser will capture video from your camera
    - Ensure your webcam is connected and working
 
 3. **Position Yourself**
@@ -208,8 +173,9 @@ An intelligent online assessment platform that monitors eye gaze using MediaPipe
 
 ### Frontend Configuration
 
-- **Backend URL**: Set in `frontend/config.js` or via `VITE_BACKEND_URL` environment variable
-- **WebSocket URL**: Automatically constructed from backend URL
+- **WebSocket URL**: Automatically detected (localhost for local dev, Railway URL for production)
+- **Camera Capture**: Browser-based using MediaDevices API
+- **Frame Rate**: ~10 FPS (every 100ms) to optimize bandwidth
 
 ## 📁 Project Structure
 
@@ -222,14 +188,10 @@ tracker/
 ├── Procfile               # Railway deployment configuration
 ├── railway.json           # Railway project configuration
 ├── runtime.txt            # Python version specification
-├── templates/             # Backend HTML templates
-│   ├── index.html
-│   └── result.html
-├── frontend/              # Frontend for Vercel deployment
-│   ├── index.html
-│   ├── result.html
-│   ├── config.js          # Backend URL configuration
-│   └── vercel.json        # Vercel deployment configuration
+├── templates/             # HTML templates (served by FastAPI)
+│   ├── landing.html       # Landing page
+│   ├── index.html         # Quiz page (with frontend camera capture)
+│   └── result.html        # Results page
 ├── suspicious_behaviour/  # Generated data
 │   ├── image/            # Flagged behavior screenshots
 │   └── session_log/      # Session data logs
@@ -247,11 +209,12 @@ tracker/
 - **Frontend**:
   - HTML5/CSS3 - Modern responsive design
   - JavaScript - Interactive quiz logic
+  - MediaDevices API - Browser camera capture
   - WebSocket API - Real-time eye tracking updates
+  - Canvas API - Frame capture and encoding
 
 - **Deployment**:
-  - Railway - Backend hosting
-  - Vercel - Frontend hosting
+  - Railway - Full-stack hosting (backend + frontend)
 
 ## 🐛 Troubleshooting
 
@@ -259,11 +222,14 @@ tracker/
 - Check browser permissions for camera access
 - Ensure no other application is using the camera
 - Try refreshing the page and granting permissions again
+- **Note**: Camera is accessed from your browser, not the server
+- Works on Railway because camera is client-side!
 
 ### WebSocket Connection Failed
-- Verify the backend URL in `config.js` is correct
 - Check that Railway backend is running and accessible
 - Ensure CORS is properly configured in `main.py`
+- Verify WebSocket URL is using `wss://` (secure) for production
+- Check browser console for connection errors
 
 ### Face Not Detected
 - Improve lighting conditions
@@ -272,16 +238,22 @@ tracker/
 - Check camera focus and quality
 
 ### Deployment Issues
-- Verify all environment variables are set correctly
 - Check Railway logs for backend errors
-- Verify Vercel build logs for frontend issues
 - Ensure `Procfile` and `railway.json` are in the root directory
+- Verify all dependencies in `requirements.txt` are correct
+- Check that OpenCV/MediaPipe dependencies install correctly
 
 ## 📝 Notes
 
 - **Webcam Requirement**: This application requires webcam access. It won't work on devices without cameras.
-- **HTTPS/WSS**: Production deployments require HTTPS (Vercel) and WSS (Railway) for WebSocket connections.
-- **Privacy**: All eye tracking data is logged locally on the server. Consider privacy implications before deploying.
+- **Browser-Based Camera**: Camera is accessed from the user's browser, not the server. This means:
+  - ✅ Works on Railway (no server camera needed)
+  - ✅ Works on any hosting platform
+  - ✅ Better privacy (camera stays in browser)
+  - ✅ Cross-platform compatibility
+- **HTTPS/WSS**: Production deployments require HTTPS and WSS for WebSocket connections (Railway provides this automatically).
+- **Privacy**: All eye tracking data is logged on the server. Consider privacy implications before deploying.
+- **Frame Rate**: Frames are sent at ~10 FPS to optimize bandwidth while maintaining accuracy.
 
 ## 🤝 Contributing
 

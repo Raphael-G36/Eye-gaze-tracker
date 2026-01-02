@@ -301,6 +301,7 @@
 
         <div class="gaze-section" id="gaze-section" style="display: none;">
             <span id="direction">Gaze Direction: Waiting for connection...</span>
+            <video id="video-preview" autoplay playsinline style="display: none; width: 320px; height: 240px; border-radius: 8px; margin-top: 10px;"></video>
         </div>
 
         <div class="button-container" id="start-connection">
@@ -416,6 +417,81 @@
             }, 1000);
         }
 
+        let videoStream = null;
+        let frameInterval = null;
+        const video = document.getElementById("video-preview");
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        async function startCamera() {
+            try {
+                // Request camera access
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: "user"
+                    }
+                });
+                
+                video.srcObject = videoStream;
+                video.play();
+                // Video can stay hidden - it still captures frames
+                // Uncomment the line below if you want to show the preview
+                // video.style.display = "block";
+                
+                // Set canvas size to match video
+                canvas.width = 640;
+                canvas.height = 480;
+                
+                document.getElementById("direction").innerHTML = 
+                    '<span class="status-indicator"></span>Gaze Direction: Camera ready - Detecting face...';
+                
+                return true;
+            } catch (error) {
+                console.error("Error accessing camera:", error);
+                document.getElementById("direction").innerHTML = 
+                    `❌ Camera Error: ${error.message}. Please grant camera permissions.`;
+                document.getElementById("direction").style.color = "#e53e3e";
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (frameInterval) {
+                clearInterval(frameInterval);
+                frameInterval = null;
+            }
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            video.srcObject = null;
+            video.style.display = "none";
+        }
+
+        function sendFrame() {
+            if (!videoStream || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+            
+            try {
+                // Capture frame from video
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to base64 JPEG (smaller than PNG)
+                const frameData = canvas.toDataURL("image/jpeg", 0.8);
+                
+                // Send to backend
+                ws.send(JSON.stringify({
+                    type: "frame",
+                    data: frameData
+                }));
+            } catch (error) {
+                console.error("Error sending frame:", error);
+            }
+        }
+
         function start() {
             // Clear previous results
             localStorage.removeItem('quizScore');
@@ -425,14 +501,27 @@
             document.getElementById("quiz-container").style.display = "block";
             gazeSection.style.display = "block";
             
-            // Connect to WebSocket
-            try {
-                ws = new WebSocket(WS_URL);
+            // Start camera first
+            startCamera().then(cameraReady => {
+                if (!cameraReady) {
+                    // Still allow quiz to continue without camera
+                    console.warn("Camera not available, continuing without eye tracking");
+                }
                 
-                ws.onopen = function() {
-                    document.getElementById("direction").innerHTML = 
-                        '<span class="status-indicator"></span>Gaze Direction: Connected - Waiting for detection...';
-                };
+                // Connect to WebSocket
+                try {
+                    ws = new WebSocket(WS_URL);
+                    
+                    ws.onopen = function() {
+                        document.getElementById("direction").innerHTML = 
+                            '<span class="status-indicator"></span>Gaze Direction: Connected - Waiting for detection...';
+                        
+                        // Start sending frames if camera is ready
+                        if (cameraReady && videoStream) {
+                            // Send frames at ~10 FPS (every 100ms) to reduce bandwidth
+                            frameInterval = setInterval(sendFrame, 100);
+                        }
+                    };
                 
                 ws.onmessage = function (event) {
                     try {
@@ -502,20 +591,23 @@
                     document.getElementById("direction").style.color = "#e53e3e";
                 };
                 
-                ws.onclose = function(event) {
-                    console.log("WebSocket connection closed", event.code, event.reason);
-                    const direction = document.getElementById("direction");
-                    if (event.code !== 1000) {  // Not a normal closure
-                        direction.innerHTML = "❌ Connection closed unexpectedly";
-                        direction.style.color = "#e53e3e";
-                    }
-                };
-            } catch (error) {
-                console.error("WebSocket connection failed:", error);
-                document.getElementById("direction").innerHTML = 
-                    "❌ Failed to establish connection";
-                document.getElementById("direction").style.color = "#e53e3e";
-            }
+                    ws.onclose = function(event) {
+                        console.log("WebSocket connection closed", event.code, event.reason);
+                        stopCamera(); // Stop camera when connection closes
+                        const direction = document.getElementById("direction");
+                        if (event.code !== 1000) {  // Not a normal closure
+                            direction.innerHTML = "❌ Connection closed unexpectedly";
+                            direction.style.color = "#e53e3e";
+                        }
+                    };
+                } catch (error) {
+                    console.error("WebSocket connection failed:", error);
+                    stopCamera();
+                    document.getElementById("direction").innerHTML = 
+                        "❌ Failed to establish connection";
+                    document.getElementById("direction").style.color = "#e53e3e";
+                }
+            });
             
             // Reset quiz state
             currentQuestion = 0;

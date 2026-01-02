@@ -186,35 +186,32 @@ async def home():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    cap = None
     connection_active = True
     
     try:
         # Send initial connection message
         try:
-            await websocket.send_json({"direction": "Initializing camera..."})
+            await websocket.send_json({"direction": "Waiting for camera feed..."})
         except Exception as e:
             print(f"Failed to send initial message: {e}")
             return
         
-        print("WebSocket connected, opening camera...")
+        print("WebSocket connected, waiting for frames from frontend...")
         
-        # Check if OpenCV is available
+        # Check if OpenCV and MediaPipe are available
         if not EYE_TRACKING_AVAILABLE or cv2 is None:
-            # Send warning but keep connection open for quiz to continue
             await websocket.send_json({
-                "error": "⚠️ Eye tracking unavailable on Railway servers (no camera access). Quiz will continue without monitoring.",
+                "error": "⚠️ Eye tracking unavailable - OpenCV/MediaPipe not available. Quiz will continue without monitoring.",
                 "warning": True,
-                "direction": "Eye tracking disabled - Quiz mode only"
+                "direction": "Eye tracking disabled"
             })
-            # Keep connection alive and send periodic status updates
-            # This allows the quiz to continue working
+            # Keep connection alive
             try:
                 while connection_active:
-                    await asyncio.sleep(5)  # Send update every 5 seconds
+                    await asyncio.sleep(5)
                     try:
                         await websocket.send_json({
-                            "direction": "Eye tracking disabled (Railway - no camera)",
+                            "direction": "Eye tracking disabled",
                             "warning": True
                         })
                     except:
@@ -223,115 +220,104 @@ async def websocket_endpoint(websocket: WebSocket):
                 pass
             return
         
-        # Try to open camera directly (simpler approach)
-        # On Windows, use DirectShow backend which is more reliable
-        backend = cv2.CAP_DSHOW if os.name == 'nt' else cv2.CAP_ANY
+        # Get eye tracker
+        tracker = get_eye_tracker()
         
-        # Try camera indices 0, 1, 2
-        camera_found = False
-        for camera_index in range(3):
-            try:
-                print(f"Trying camera index {camera_index}...")
-                cap = cv2.VideoCapture(camera_index, backend)
-                
-                if cap.isOpened():
-                    # Try to read a frame to verify it works
-                    ret, frame = cap.read()
-                    if ret and frame is not None:
-                        print(f"✓ Camera {camera_index} working! Frame size: {frame.shape}")
-                        camera_found = True
-                        break
-                    else:
-                        print(f"Camera {camera_index} opened but can't read frames")
-                        cap.release()
-                        cap = None
-                else:
-                    print(f"Camera {camera_index} failed to open")
-                    if cap:
-                        cap.release()
-                    cap = None
-            except Exception as e:
-                print(f"Error with camera {camera_index}: {e}")
-                import traceback
-                traceback.print_exc()
-                if cap:
-                    try:
-                        cap.release()
-                    except:
-                        pass
-                cap = None
-        
-        if not camera_found or cap is None or not cap.isOpened():
-            print("No working camera found")
-            error_msg = "Unable to access webcam. Please ensure:\n"
-            error_msg += "1. Your camera is connected and working\n"
-            error_msg += "2. No other application is using the camera (Zoom, Teams, etc.)\n"
-            error_msg += "3. Camera permissions are granted in Windows Settings\n"
-            error_msg += "4. Try closing all apps and restarting this application"
-            try:
-                await websocket.send_json({"error": error_msg})
-                await websocket.close(code=1000)  # Normal closure
-            except:
-                pass
-            return
-        
-        print("Camera successfully opened!")
-        
-        # Set camera properties for better performance
-        try:
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            cap.set(cv2.CAP_PROP_FPS, 30)
-        except:
-            pass  # Some cameras don't support these settings
-        
-        # Send initial connection message
-        try:
-            await websocket.send_json({"direction": "Camera ready! Detecting face..."})
-        except Exception as e:
-            print(f"Failed to send ready message: {e}")
-            if cap:
-                cap.release()
-            return
-        
-        # Give camera a moment to warm up
-        await asyncio.sleep(0.3)
-        
-        no_of_images = 0
         frame_count = 0
         consecutive_errors = 0
         max_errors = 10
         
-        # Main processing loop
-        print("Starting frame processing loop...")
+        # Main processing loop - receive frames from frontend
+        print("Starting frame processing loop (receiving from frontend)...")
         while connection_active:
             try:
+                # Receive message from frontend
+                message = await websocket.receive_text()
+                data = json.loads(message)
                 
-                # Check if cap is still valid
-                if cap is None or not cap.isOpened():
-                    print("Camera is no longer open, exiting loop")
-                    try:
-                        await websocket.send_json({"error": "Camera connection lost"})
-                    except:
-                        pass
-                    break
-                
-                # Read frame from camera
-                ret, frame = cap.read()
-                if not ret or frame is None:
-                    consecutive_errors += 1
-                    print(f"Failed to read frame from camera (error {consecutive_errors}/{max_errors})")
-                    if consecutive_errors >= max_errors:
+                if data.get("type") == "frame":
+                    # Decode base64 image
+                    import base64
+                    image_data = data["data"]
+                    # Remove data URL prefix if present
+                    if "," in image_data:
+                        image_data = image_data.split(",")[1]
+                    
+                    # Decode base64 to bytes
+                    frame_bytes = base64.b64decode(image_data)
+                    
+                    # Convert bytes to numpy array
+                    import numpy as np
+                    nparr = np.frombuffer(frame_bytes, np.uint8)
+                    
+                    # Decode image using OpenCV
+                    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    
+                    if frame is None:
+                        consecutive_errors += 1
+                        if consecutive_errors >= max_errors:
+                            await websocket.send_json({"error": "Failed to decode frames"})
+                            break
+                        continue
+                    
+                    # Reset error counter on success
+                    consecutive_errors = 0
+                    frame_count += 1
+                    
+                    # Process every 3rd frame to reduce load (~3-4 FPS processing)
+                    if frame_count % 3 == 0:
                         try:
-                            await websocket.send_json({"error": "Unable to read from webcam after multiple attempts"})
-                        except:
-                            pass
-                        break
-                    await asyncio.sleep(0.1)
-                    continue
-                
-                # Reset error counter on success
-                consecutive_errors = 0
+                            # Process frame with eye tracker
+                            result = tracker.process_frame(frame)
+                            
+                            # Log to session data if active
+                            if session_data['active'] and result and "direction" in result:
+                                session_data['data'].append({
+                                    "session_id": session_data["session_id"],
+                                    "timestamp": datetime.datetime.now().isoformat(),
+                                    "direction": result["direction"],
+                                })
+                                
+                                # Save flagged images
+                                if result["direction"] == "Flagged: Looking away for 3+ seconds":
+                                    session_id = session_data["session_id"]
+                                    try:
+                                        cv2.imwrite(f"suspicious_behaviour/image/{session_id}_{int(time.time()*1000)}.jpg", frame)
+                                    except:
+                                        pass
+                            
+                            # Send result back to frontend
+                            await websocket.send_json(result)
+                            
+                        except Exception as e:
+                            print(f"Error processing frame: {e}")
+                            import traceback
+                            traceback.print_exc()
+                            consecutive_errors += 1
+                            if consecutive_errors >= max_errors:
+                                break
+                    
+                elif data.get("type") == "ping":
+                    # Respond to ping to keep connection alive
+                    await websocket.send_json({"type": "pong"})
+                    
+            except asyncio.CancelledError:
+                print("WebSocket task cancelled")
+                connection_active = False
+                break
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                consecutive_errors += 1
+                if consecutive_errors >= max_errors:
+                    break
+            except Exception as e:
+                print(f"Unexpected error in frame loop: {e}")
+                import traceback
+                traceback.print_exc()
+                consecutive_errors += 1
+                if consecutive_errors >= max_errors:
+                    break
+                await asyncio.sleep(0.1)
                 
                 # Process frame directly (MediaPipe is fast enough)
                 try:
@@ -407,20 +393,8 @@ async def websocket_endpoint(websocket: WebSocket):
         except:
             pass
     finally:
-        # Always release camera when done
+        # Clean up
         connection_active = False
-        if cap is not None:
-            try:
-                if cap.isOpened():
-                    cap.release()
-                    print("Camera released")
-            except Exception as e:
-                print(f"Error releasing camera: {e}")
-        try:
-            if cv2 is not None:
-                cv2.destroyAllWindows()
-        except:
-            pass
         print("WebSocket connection closed")
 
 def evaluate():
