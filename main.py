@@ -2,14 +2,24 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from fastapi.responses import HTMLResponse
-from view import EyeTracker
-import cv2
 import uuid
 import datetime
 import json
 import os
 import time
 import asyncio
+
+# Lazy import of OpenCV and EyeTracker to avoid startup errors on Railway
+# Railway servers don't have cameras, so we make these optional
+try:
+    import cv2
+    from view import EyeTracker
+    EYE_TRACKING_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Eye tracking not available: {e}")
+    EYE_TRACKING_AVAILABLE = False
+    cv2 = None
+    EyeTracker = None
 
 
 os.makedirs("suspicious_behaviour/image/", exist_ok=True)
@@ -31,6 +41,8 @@ eye_tracker = None
 
 def get_eye_tracker():
     global eye_tracker
+    if not EYE_TRACKING_AVAILABLE:
+        raise RuntimeError("Eye tracking is not available on this server. Railway servers don't have camera access.")
     if eye_tracker is None:
         eye_tracker = EyeTracker()
     return eye_tracker
@@ -47,6 +59,9 @@ looking_right = 0
 
 def find_available_camera():
     """Try to find an available camera by testing different indices"""
+    if not EYE_TRACKING_AVAILABLE or cv2 is None:
+        return None, None
+    
     print("Starting camera search...")
     # On Windows, try DirectShow backend first (more reliable)
     backends = []
@@ -114,6 +129,17 @@ async def health_check():
 @app.get("/test-camera")
 async def test_camera():
     """Test endpoint to check camera availability"""
+    if not EYE_TRACKING_AVAILABLE:
+        return {
+            "status": "error",
+            "message": "Eye tracking not available",
+            "note": "OpenCV/MediaPipe not available on this server. Railway servers don't have camera access.",
+            "suggestions": [
+                "Run the application locally for camera functionality",
+                "Railway servers are headless and don't support camera access"
+            ]
+        }
+    
     # Run in executor to avoid blocking
     loop = asyncio.get_event_loop()
     cap, camera_index = await loop.run_in_executor(None, find_available_camera)
@@ -172,6 +198,14 @@ async def websocket_endpoint(websocket: WebSocket):
             return
         
         print("WebSocket connected, opening camera...")
+        
+        # Check if OpenCV is available
+        if not EYE_TRACKING_AVAILABLE or cv2 is None:
+            await websocket.send_json({
+                "error": "Eye tracking is not available on this server. Railway servers don't have camera access. Please run this application locally for eye tracking functionality."
+            })
+            await websocket.close()
+            return
         
         # Try to open camera directly (simpler approach)
         # On Windows, use DirectShow backend which is more reliable
@@ -367,7 +401,8 @@ async def websocket_endpoint(websocket: WebSocket):
             except Exception as e:
                 print(f"Error releasing camera: {e}")
         try:
-            cv2.destroyAllWindows()
+            if cv2 is not None:
+                cv2.destroyAllWindows()
         except:
             pass
         print("WebSocket connection closed")
