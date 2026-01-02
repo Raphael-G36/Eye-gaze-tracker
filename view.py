@@ -8,12 +8,25 @@
     # if a frame is 1080*1920, then the y value of 0.5 will be 0.5*1080 = 540
     # from this we know the precise location of that landmark in the eye
 import cv2 
-import mediapipe as mp
 import numpy as np
 import time
 
+# Import MediaPipe with error handling
+try:
+    import mediapipe as mp
+except ImportError as e:
+    raise ImportError(f"Failed to import MediaPipe: {e}. Make sure mediapipe is installed correctly.")
+
+
 class EyeTracker:
     def __init__(self):
+        # Verify MediaPipe is properly imported
+        if not hasattr(mp, 'solutions'):
+            raise AttributeError(
+                f"MediaPipe 'solutions' module not found. "
+                f"MediaPipe version: {getattr(mp, '__version__', 'unknown')}. "
+                f"Available attributes: {dir(mp)}"
+            )
         self.mp_face_mesh = mp.solutions.face_mesh
         # Don't open camera here - it will be opened in main.py
         # self.cap = cv2.VideoCapture(0)  # Removed to avoid conflicts

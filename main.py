@@ -26,7 +26,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-eye_tracker = EyeTracker()
+# Initialize EyeTracker lazily to avoid import errors during startup
+eye_tracker = None
+
+def get_eye_tracker():
+    global eye_tracker
+    if eye_tracker is None:
+        eye_tracker = EyeTracker()
+    return eye_tracker
 
 session_data ={
     "active":False,
@@ -278,7 +285,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # Process frame directly (MediaPipe is fast enough)
                 try:
-                    result = eye_tracker.process_frame(frame)
+                    tracker = get_eye_tracker()
+                    result = tracker.process_frame(frame)
                 except Exception as process_error:
                     print(f"Error processing frame: {process_error}")
                     result = {"direction": "Processing error"}
