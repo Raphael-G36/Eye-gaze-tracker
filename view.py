@@ -15,7 +15,8 @@ import time
 class EyeTracker:
     def __init__(self):
         self.mp_face_mesh = mp.solutions.face_mesh
-        self.cap = cv2.VideoCapture(0)
+        # Don't open camera here - it will be opened in main.py
+        # self.cap = cv2.VideoCapture(0)  # Removed to avoid conflicts
         self.left_iris = [474, 475, 476, 477]
         self.right_iris = [469, 470, 471, 472]
         self.face_mesh = self.mp_face_mesh.FaceMesh(

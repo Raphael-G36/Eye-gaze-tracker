@@ -317,15 +317,22 @@
     </div>
 
     <script>
-        // Get backend URL from environment or use default
-        const BACKEND_URL = window.location.origin.includes('localhost') 
-            ? 'ws://localhost:8000' 
-            : 'wss://' + window.location.hostname.replace('your-frontend', 'your-backend') + '/ws';
+        // Get backend URL - properly detect localhost
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname === '0.0.0.0' ||
+                           window.location.hostname.startsWith('192.168.') ||
+                           window.location.hostname.startsWith('10.') ||
+                           window.location.hostname.startsWith('172.');
         
-        // For production, you'll need to set this to your Railway backend URL
-        const WS_URL = window.location.origin.includes('localhost') 
+        // For production, replace 'your-railway-app.railway.app' with your actual Railway URL
+        const WS_URL = isLocalhost 
             ? 'ws://localhost:8000/ws'
             : 'wss://your-railway-app.railway.app/ws';
+        
+        console.log('WebSocket URL:', WS_URL);
+        console.log('Hostname:', window.location.hostname);
+        console.log('Is localhost:', isLocalhost);
 
         let currentQuestion = 0;
         let score = 0;
@@ -420,9 +427,13 @@
                         var data = JSON.parse(event.data);
                         const direction = document.getElementById("direction");
                         
+                        // Debug logging
+                        console.log("WebSocket message received:", data);
+                        
                         if (data.error) {
                             direction.innerHTML = `⚠️ ${data.error}`;
                             direction.style.color = "#e53e3e";
+                            console.error("WebSocket error:", data.error);
                         } else if (data.direction) {
                             let statusColor = "#667eea";
                             let statusIcon = "👁️";
@@ -433,24 +444,41 @@
                             } else if (data.direction.includes("No face")) {
                                 statusColor = "#f6ad55";
                                 statusIcon = "👤";
+                            } else if (data.direction.includes("Initializing")) {
+                                statusColor = "#4299e1";
+                                statusIcon = "⏳";
                             }
                             
                             direction.innerHTML = `${statusIcon} Gaze Direction: ${data.direction}`;
                             direction.style.color = statusColor;
+                        } else {
+                            // Handle case where data doesn't have direction
+                            console.warn("Received data without direction:", data);
+                            direction.innerHTML = "⏳ Processing...";
+                            direction.style.color = "#4299e1";
                         }
                     } catch (e) {
-                        console.error("Error parsing WebSocket message:", e);
+                        console.error("Error parsing WebSocket message:", e, "Raw data:", event.data);
+                        const direction = document.getElementById("direction");
+                        direction.innerHTML = "❌ Error processing message";
+                        direction.style.color = "#e53e3e";
                     }
                 };
                 
                 ws.onerror = function(error) {
+                    console.error("WebSocket error:", error);
                     document.getElementById("direction").innerHTML = 
                         "❌ Connection Error: Unable to connect to eye tracking service";
                     document.getElementById("direction").style.color = "#e53e3e";
                 };
                 
-                ws.onclose = function() {
-                    console.log("WebSocket connection closed");
+                ws.onclose = function(event) {
+                    console.log("WebSocket connection closed", event.code, event.reason);
+                    const direction = document.getElementById("direction");
+                    if (event.code !== 1000) {  // Not a normal closure
+                        direction.innerHTML = "❌ Connection closed unexpectedly";
+                        direction.style.color = "#e53e3e";
+                    }
                 };
             } catch (error) {
                 console.error("WebSocket connection failed:", error);
