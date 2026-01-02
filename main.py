@@ -201,10 +201,26 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Check if OpenCV is available
         if not EYE_TRACKING_AVAILABLE or cv2 is None:
+            # Send warning but keep connection open for quiz to continue
             await websocket.send_json({
-                "error": "Eye tracking is not available on this server. Railway servers don't have camera access. Please run this application locally for eye tracking functionality."
+                "error": "⚠️ Eye tracking unavailable on Railway servers (no camera access). Quiz will continue without monitoring.",
+                "warning": True,
+                "direction": "Eye tracking disabled - Quiz mode only"
             })
-            await websocket.close()
+            # Keep connection alive and send periodic status updates
+            # This allows the quiz to continue working
+            try:
+                while connection_active:
+                    await asyncio.sleep(5)  # Send update every 5 seconds
+                    try:
+                        await websocket.send_json({
+                            "direction": "Eye tracking disabled (Railway - no camera)",
+                            "warning": True
+                        })
+                    except:
+                        break
+            except:
+                pass
             return
         
         # Try to open camera directly (simpler approach)

@@ -249,6 +249,15 @@
             margin: 0;
         }
 
+        #eye-tracking-warning {
+            background: #fff5e6 !important;
+            border-left-color: #f6ad55 !important;
+        }
+
+        #eye-tracking-warning p {
+            color: #c05621 !important;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 0;
@@ -301,7 +310,10 @@
         </div>
 
         <div class="quiz-container" style="display: none;" id="quiz-container">
-            <div class="warning-box">
+            <div class="warning-box" id="eye-tracking-warning" style="display: none; background: #fff5e6; border-left-color: #f6ad55;">
+                <p>⚠️ <strong>Note:</strong> Eye tracking is disabled on Railway servers. The quiz will work, but eye monitoring is not available. Run locally for full eye tracking functionality.</p>
+            </div>
+            <div class="warning-box" id="normal-warning">
                 <p>⚠️ <strong>Important:</strong> Keep your eyes on the screen. Looking away for more than 3 seconds will be flagged as suspicious behavior.</p>
             </div>
             <div class="timer" id="timer" style="display: block;">⏱️ Time Left: 120s</div>
@@ -431,10 +443,28 @@
                         console.log("WebSocket message received:", data);
                         
                         if (data.error) {
-                            direction.innerHTML = `⚠️ ${data.error}`;
-                            direction.style.color = "#e53e3e";
-                            console.error("WebSocket error:", data.error);
+                            // Check if it's a warning (Railway server limitation)
+                            if (data.warning) {
+                                direction.innerHTML = `⚠️ ${data.error}`;
+                                direction.style.color = "#f6ad55";
+                                console.warn("Eye tracking warning:", data.error);
+                                // Show Railway warning and hide normal warning
+                                document.getElementById('eye-tracking-warning').style.display = 'block';
+                                document.getElementById('normal-warning').style.display = 'none';
+                                // Allow quiz to continue
+                            } else {
+                                direction.innerHTML = `❌ ${data.error}`;
+                                direction.style.color = "#e53e3e";
+                                console.error("WebSocket error:", data.error);
+                            }
                         } else if (data.direction) {
+                            // Check if it's a warning message
+                            if (data.warning) {
+                                direction.style.color = "#f6ad55";
+                                // Show Railway warning
+                                document.getElementById('eye-tracking-warning').style.display = 'block';
+                                document.getElementById('normal-warning').style.display = 'none';
+                            }
                             let statusColor = "#667eea";
                             let statusIcon = "👁️";
                             
