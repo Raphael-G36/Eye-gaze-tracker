@@ -20,7 +20,7 @@ app = FastAPI(title="Eye Tracking Quiz Application")
 # CORS configuration for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your Vercel domain
+    allow_origins=["*"],  # In production, replace with your domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
